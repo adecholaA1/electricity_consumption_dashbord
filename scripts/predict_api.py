@@ -13,7 +13,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ─── Chemin du modèle ─────────────────────────────────────────────────────────
-MODEL_PATH = "/Users/kouande/Desktop/Dev_logiciel/electricity_project/models/run-0/checkpoint-final"
+MODEL_PATH = "/home/ubuntu/electricity_consumption_dashbord/models/run-0/checkpoint-final"
 
 # ─── Initialisation de l'app FastAPI ──────────────────────────────────────────
 app = FastAPI(title="Chronos Prediction API", version="1.0.0")

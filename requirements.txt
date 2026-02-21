@@ -18,7 +18,7 @@ pytz==2025.2
 tqdm==4.67.3
 
 # PyTorch (requis pour Chronos)
-torch==2.2.2
+torch==2.6.0
 
 # Chronos forecasting (Amazon Research)
 git+https://github.com/amazon-science/chronos-forecasting.git

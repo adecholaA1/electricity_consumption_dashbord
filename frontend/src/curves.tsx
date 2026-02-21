@@ -1,5 +1,5 @@
 import * as React from "react"
-import { TrendingUp } from "lucide-react"
+// import { TrendingUp } from "lucide-react"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { ModeToggle } from "./components/ui/mode-toggle"
 import {
