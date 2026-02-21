@@ -1,0 +1,28 @@
+# Environment
+.env
+*.env.local
+
+# Logs
+logs/*.log
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+*.egg-info/
+
+
+# Node
+node_modules/
+dist/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

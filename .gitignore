@@ -1,0 +1,24 @@
+# Environnement - NE JAMAIS COMMITER
+.env
+
+# Logs
+logs/
+
+# Dossiers à ignorer
+scripts_parallel/
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+electricity_env/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Divers
+.DS_Store
