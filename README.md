@@ -1,15 +1,20 @@
 # ⚡ Electricity Consumption Dashboard
 
+🌐 **[https://ai-elec-conso.fr](https://ai-elec-conso.fr)** | 📄 MIT License | Stack: React • FastAPI • PostgreSQL • Chronos • Docker • Nginx • PM2
+
 English version below
 
 ---
-
 
 > Ce projet est né d'une conviction simple : pour trader efficacement sur le marché de l'électricité, il faut anticiper. La consommation électrique influence directement le prix spot de l'énergie — comprendre et prévoir sa trajectoire, c'est se donner un avantage décisif.
 >
 > Ce dashboard a été conçu pour centraliser, visualiser et prédire la consommation électrique française en temps quasi réel. Il combine des données officielles de RTE France avec un modèle de prévision de pointe (Chronos, développé par Amazon Research), fine-tuné spécifiquement sur les données de consommation française.
 >
 > Le résultat : un outil autonome, entièrement automatisé, capable de générer chaque jour des prévisions J+1 et de les comparer aux prévisions officielles de RTE — le tout accessible depuis un dashboard interactif.
+
+🌐 **Dashboard en ligne : [https://ai-elec-conso.fr](https://ai-elec-conso.fr)**
+
+![Demo du dashboard](demo.gif)
 
 ### 🎯 Présentation
 
@@ -19,114 +24,70 @@ Le dashboard affiche et compare en temps réel :
 - **Nos prévisions** générées par le modèle de fondation Chronos fine-tuné via FastAPI (mises à jour quotidiennement à 10h)
 
 ### 🏗️ Architecture du projet
-```
-electricity_project/
-│
-├── backend/                        # API REST Express.js
-│   ├── node_modules/
-│   ├── index.js                    # Serveur principal (6 routes)
-│   ├── package.json
-│   └── .gitignore
-│
-├── frontend/                       # Dashboard React.js
-│   ├── node_modules/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/             # Composants shadcn/ui
-│   │   ├── lib/                    # Fonctions utilitaires
-│   │   ├── assets/
-│   │   ├── curves.tsx              # Composant graphique principal
-│   │   ├── App.tsx                 # Composant racine
-│   │   ├── App.css
-│   │   ├── main.tsx                # Point d'entrée
-│   │   └── index.css
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   └── package.json
-│
-├── scripts/                        # Scripts Python d'automatisation
-│   ├── fetch_rte_data.py           # Récupère la conso réelle (cron : 2h du matin)
-│   ├── fetch_rte_forecast.py       # Récupère les prévisions RTE jour J (cron : 20h)
-│   ├── our_predictions_day_ahead.py # Génère nos prévisions via FastAPI (cron : 10h)
-│   ├── predict_api.py              # Serveur FastAPI exposant le modèle Chronos
-│   └── start_api.sh                # Démarre/redémarre le serveur FastAPI
-│
-├── models/                         # Modèle Chronos fine-tuné (Git LFS)
-│   └── run-0/                      # Poids et configuration du modèle
-│
-├── .env.example                    # Template des variables d'environnement
-├── .gitignore
-├── requirements.txt                # Dépendances Python
-└── README.md
+
+```mermaid
+graph TD
+    A[API RTE France] -->|OAuth2| B[fetch_rte_data.py\n2h du matin]
+    A -->|OAuth2| C[fetch_rte_forecast.py\n20h]
+    B -->|24 lignes/jour| D[(PostgreSQL\nhistorical_data)]
+    C -->|24 lignes/jour| E[(PostgreSQL\nrte_forecasts)]
+    D -->|504h historique| F[our_predictions_day_ahead.py\n10h]
+    E -->|24h prévisions| F
+    F -->|POST /predict| G[FastAPI\npredict_api.py\nport 8000]
+    G -->|Modèle Chronos\nfine-tuné| G
+    G -->|24 prévisions| F
+    F -->|24 lignes/jour| H[(PostgreSQL\npredictions)]
+    D --> I[Express.js API\nport 3001]
+    E --> I
+    H --> I
+    I -->|JSON| J[Dashboard React\nai-elec-conso.fr]
 ```
 
-### 🔄 Flux de données
-```
-API RTE France
-      │
-      ▼
-fetch_rte_data.py (2h)              ──► PostgreSQL (historical_data)
-fetch_rte_forecast.py (20h)         ──► PostgreSQL (rte_forecasts)
-      │
-      ▼
-our_predictions_day_ahead.py (10h)
-      │
-      ├── lit historical_data depuis PostgreSQL (504h)
-      ├── lit rte_forecasts depuis PostgreSQL (24h)
-      ├── POST http://localhost:8000/predict → FastAPI (predict_api.py)
-      │         │
-      │         └── Modèle Chronos chargé en mémoire
-      └── écrit les 24 prévisions dans PostgreSQL (predictions)
-            │
-            ▼
-      API Express.js (port 3001)
-            │
-            ▼
-      Dashboard React (port 5173)
-```
+### 🔄 Pipeline automatisé
 
-### 🖥️ Aperçu du Dashboard
-```
-┌─────────────────────────────────────────────────────────┐
-│  ⚡ Electricity Consumption Dashboard          [🌙/☀️]  │
-├─────────────────────────────────────────────────────────┤
-│  France — Actual vs RTE Forecasts vs Our Forecasts      │
-│                                        [Last 3 months ▼]│
-│                                                         │
-│  80k ┤                                                  │
-│      │  ━━━━━━  Consommation réelle                     │
-│  60k ┤  ──────  Prévisions RTE                          │
-│      │  ──────  Nos prévisions (Chronos)                │
-│  40k ┤                                                  │
-│      └──────────────────────────────────────────────    │
-│      01 Déc       01 Jan        01 Fév                  │
-│                                                         │
-│  La conso réelle du jour D est disponible le D+1 à 2h   │
-│  Les prévisions RTE pour J sont générées à 20h          │
-│  Nos prévisions pour J+1 sont générées à 10h            │
-│                                                         │
-│  © Données issues de l'API RTE France                   │
-└─────────────────────────────────────────────────────────┘
-```
+| Script | Planification | Description |
+|--------|--------------|-------------|
+| `fetch_rte_data.py` | Chaque jour à 2h | Récupère la consommation réelle du jour J |
+| `start_api.sh` | Au démarrage + 9h50 | Redémarre FastAPI |
+| `our_predictions_day_ahead.py` | Chaque jour à 10h | Génère nos prévisions via FastAPI |
+| `fetch_rte_forecast.py` | Chaque jour à 20h | Récupère les prévisions RTE du jour J |
+
+> 📊 **Note sur les données** : Les données de consommation sont récupérées via l'endpoint `Consumption` de l'API RTE France. Les données brutes sont fournies à une granularité de **15 minutes** (96 points par jour), puis agrégées en **moyennes horaires** (24 points par jour) avant d'être stockées dans PostgreSQL.
+
+
+### 🤖 Le modèle Chronos
+
+[Chronos](https://github.com/amazon-science/chronos-forecasting) est un **modèle de fondation préentraîné pour les séries temporelles**, développé par Amazon Research. Contrairement aux modèles classiques (ARIMA, Prophet) qui nécessitent d'être entraînés spécifiquement sur chaque série temporelle, Chronos adopte une approche similaire aux grands modèles de langage (LLM) : il est préentraîné sur des **milliers de séries temporelles issues de domaines variés** (finance, énergie, météo, santé...), ce qui lui confère une capacité de généralisation remarquable. Notamment, Chronos se distingue par ses **performances exceptionnelles en mode zero-shot** — c'est-à-dire qu'il est capable de générer des prévisions précises sur des séries temporelles qu'il n'a jamais vues lors de l'entraînement, sans aucun fine-tuning préalable. Cette propriété en fait un modèle particulièrement polyvalent et adapté à des cas d'usage variés.
+
+#### Comment fonctionne Chronos ?
+
+Chronos transforme les valeurs numériques d'une série temporelle en **tokens** (comme un LLM tokenise du texte), puis utilise une architecture **Transformer** pour apprendre les patterns temporels. Pour générer une prévision, il prédit les tokens suivants de manière probabiliste.
+
+#### Fine-tuning sur les données françaises
+
+Dans ce projet, le modèle `chronos-t5-small` a été **fine-tuné** sur les données historiques de consommation électrique française issues de RTE, afin d'adapter ses prédictions aux spécificités du réseau français :
+- Cycles journaliers (pic matin/soir)
+- Cycles hebdomadaires (week-end vs jours ouvrés)
+- Saisonnalité annuelle (hiver vs été)
+
+Le modèle fine-tuné est exposé via une **API FastAPI** qui reçoit les 504 dernières heures de consommation et retourne les 24 prévisions pour le lendemain.
 
 ### 🛠️ Stack technique
 
 | Couche | Technologie | Version |
 |--------|-------------|---------|
-| Frontend | React.js | 19.x |
-| Frontend | Vite | 7.x |
-| Frontend | Recharts | 2.x |
-| Frontend | shadcn/ui + Tailwind CSS | 4.x |
-| Backend API | Express.js | 5.x |
-| Backend API | Node.js + pg | 8.x |
-| Modèle ML | Chronos (Amazon, fine-tuné) | - |
+| Frontend | React.js + Vite | 19.x / 7.x |
+| Frontend | Recharts + shadcn/ui + Tailwind | 2.x / 4.x |
+| Backend API | Express.js + Node.js | 5.x |
+| Modèle ML | Chronos (Amazon, fine-tuné) | 2.2.2 |
 | API Modèle | FastAPI + Uvicorn | 0.129.x |
 | Base de données | PostgreSQL (Docker) | 15 |
+| Déploiement | VPS OVH + Nginx + PM2 | - |
+| HTTPS | Let's Encrypt (Certbot) | - |
 | Source de données | API RTE France (OAuth2) | - |
 | Automatisation | Cron jobs | - |
 
-### ⚙️ Installation & Configuration
+### ⚙️ Installation & Configuration (développement local)
 
 #### Prérequis
 - Node.js >= 18
@@ -156,18 +117,21 @@ docker run --name trading_pg_db \
   -d postgres:15-alpine
 ```
 
-#### 4. Installer les dépendances Python
+#### 4. Initialiser la base de données
 ```bash
-pip install -r requirements.txt
+docker exec -i trading_pg_db psql -U dev_user -d trading_data < backend/backup/trading_data_3_tables.sql
 ```
 
-#### 5. Donner les permissions d'exécution au script FastAPI
+#### 5. Installer les dépendances Python
 ```bash
-chmod +x scripts/start_api.sh
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 #### 6. Démarrer l'API du modèle ML
 ```bash
+chmod +x scripts/start_api.sh
 bash scripts/start_api.sh
 ```
 
@@ -185,49 +149,22 @@ npm install
 npm run dev
 ```
 
-#### 9. Configurer les cron jobs
+### 🚀 Déploiement (VPS OVH)
+
+Le projet est déployé sur un VPS OVH (6 vCores, 12 Go RAM, Ubuntu 25.04) avec :
+
+- **Nginx** comme reverse proxy (HTTP → HTTPS)
+- **PM2** pour gérer les processus Node.js et FastAPI
+- **Let's Encrypt** pour le certificat SSL
+- **Cron jobs** pour l'automatisation quotidienne
+
 ```bash
-crontab -e
+# Démarrer les services avec PM2
+pm2 start backend/index.js --name "backend"
+pm2 start scripts/start_api.sh --name "fastapi"
+pm2 save
+pm2 startup
 ```
-Ajouter les lignes suivantes :
-```bash
-# Démarrer FastAPI au démarrage du système
-@reboot /bin/bash /chemin/vers/electricity_project/scripts/start_api.sh >> /chemin/vers/electricity_project/logs/fastapi.log 2>&1
-
-# Récupérer les données historiques RTE de J-1 tous les J à 02h00
-0 2 * * * cd /chemin/vers/electricity_project && /opt/anaconda3/envs/electricity_env/bin/python scripts/fetch_rte_data.py >> /chemin/vers/electricity_project/logs/fetch_rte_data.log 2>&1
-
-# Redémarrer FastAPI à 9h50 (kill ancien + démarrage nouveau)
-50 9 * * * /bin/bash /chemin/vers/electricity_project/scripts/start_api.sh >> /chemin/vers/electricity_project/logs/fastapi.log 2>&1
-
-# Générer nos prédictions tous les jours à 10h
-0 10 * * * cd /chemin/vers/electricity_project && /opt/anaconda3/envs/electricity_env/bin/python scripts/our_predictions_day_ahead.py >> /chemin/vers/electricity_project/logs/our_predictions_day_ahead.log 2>&1
-
-# Récupérer les prévisions RTE jour J tous les jours à 20h
-0 20 * * * cd /chemin/vers/electricity_project && /opt/anaconda3/envs/electricity_env/bin/python scripts/fetch_rte_forecast.py >> /chemin/vers/electricity_project/logs/fetch_rte_forecast.log 2>&1
-```
-
-> ⚠️ **Important (macOS)** : Pour que les cron jobs fonctionnent correctement sur macOS, il faut donner l'accès complet au disque à cron :
-> 1. Ouvrir **Préférences Système** → **Confidentialité & Sécurité** → **Accès complet au disque**
-> 2. Cliquer sur **+** et ajouter `/usr/sbin/cron`
-
-### 🐍 Dépendances Python
-
-| Package | Version | Usage |
-|---------|---------|-------|
-| torch | 2.2.2 | Backend deep learning |
-| chronos-forecasting | latest | Modèle de fondation |
-| transformers | 4.57.6 | Architecture du modèle |
-| accelerate | 1.12.0 | Accélération entraînement |
-| fastapi | 0.129.0 | API du modèle ML |
-| uvicorn | 0.40.0 | Serveur ASGI |
-| pandas | 2.3.3 | Manipulation des données |
-| numpy | 1.26.4 | Calcul numérique |
-| psycopg2-binary | 2.9.11 | Connexion PostgreSQL |
-| scikit-learn | 1.7.2 | Utilitaires ML |
-| requests | 2.32.5 | Appels API RTE |
-| python-dotenv | 1.2.1 | Variables d'environnement |
-| tqdm | 4.67.3 | Barres de progression |
 
 ### 📡 Endpoints API
 
@@ -240,15 +177,6 @@ Ajouter les lignes suivantes :
 | GET | `/api/status` | Statut du système |
 | GET | `/api/health` | Santé de l'API |
 
-### 🤖 Pipeline automatisé (Cron Jobs)
-
-| Script | Planification | Description |
-|--------|--------------|-------------|
-| `start_api.sh` | Au démarrage + chaque jour à 9h50 | Redémarre FastAPI |
-| `fetch_rte_data.py` | Chaque jour à 2h | Récupère la consommation réelle du jour D |
-| `our_predictions_day_ahead.py` | Chaque jour à 10h | Génère nos prévisions via FastAPI |
-| `fetch_rte_forecast.py` | Chaque jour à 20h | Récupère les prévisions RTE du jour J |
-
 ### 📄 Licence
 
 Licence MIT — libre d'utilisation, de modification et de distribution.
@@ -260,12 +188,15 @@ Licence MIT — libre d'utilisation, de modification et de distribution.
 
 ---
 
-
 > This project was born from a simple conviction: to trade electricity markets effectively, you need to anticipate. Electricity consumption directly influences the spot price of energy — understanding and forecasting its trajectory is a decisive advantage.
 >
 > This dashboard was designed to centralize, visualize and forecast French electricity consumption in near real time. It combines official RTE France data with a state-of-the-art forecasting model (Chronos, developed by Amazon Research), fine-tuned specifically on French consumption data.
 >
 > The result: a fully autonomous, automated tool capable of generating daily J+1 forecasts and comparing them against RTE's official forecasts — all accessible from an interactive dashboard.
+
+🌐 **Live Demo: [https://ai-elec-conso.fr](https://ai-elec-conso.fr)**
+
+![Dashboard Demo](demo.gif)
 
 ### 🎯 Overview
 
@@ -275,114 +206,70 @@ The dashboard displays and compares in real time:
 - **Our model forecasts** generated by a fine-tuned Chronos model via FastAPI (updated daily at 10 a.m.)
 
 ### 🏗️ Project Architecture
-```
-electricity_project/
-│
-├── backend/                        # Express.js REST API
-│   ├── node_modules/
-│   ├── index.js                    # Main API server (6 routes)
-│   ├── package.json
-│   └── .gitignore
-│
-├── frontend/                       # React.js dashboard
-│   ├── node_modules/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/             # shadcn/ui components
-│   │   ├── lib/                    # Utility functions
-│   │   ├── assets/
-│   │   ├── curves.tsx              # Main chart component
-│   │   ├── App.tsx                 # Root component
-│   │   ├── App.css
-│   │   ├── main.tsx                # Entry point
-│   │   └── index.css
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   └── package.json
-│
-├── scripts/                        # Python automation scripts
-│   ├── fetch_rte_data.py           # Fetches actual consumption (cron: daily at 2 a.m.)
-│   ├── fetch_rte_forecast.py       # Fetches RTE forecasts day J (cron: daily at 8 p.m.)
-│   ├── our_predictions_day_ahead.py # Generates our forecasts via FastAPI (cron: 10 a.m.)
-│   ├── predict_api.py              # FastAPI server exposing the Chronos model
-│   └── start_api.sh                # Starts/restarts the FastAPI server
-│
-├── models/                         # Fine-tuned Chronos model (Git LFS)
-│   └── run-0/                      # Model weights and config
-│
-├── .env.example                    # Environment variables template
-├── .gitignore
-├── requirements.txt                # Python dependencies
-└── README.md
+
+```mermaid
+graph TD
+    A[RTE France API] -->|OAuth2| B[fetch_rte_data.py\n2 a.m.]
+    A -->|OAuth2| C[fetch_rte_forecast.py\n8 p.m.]
+    B -->|24 rows/day| D[(PostgreSQL\nhistorical_data)]
+    C -->|24 rows/day| E[(PostgreSQL\nrte_forecasts)]
+    D -->|504h history| F[our_predictions_day_ahead.py\n10 a.m.]
+    E -->|24h forecasts| F
+    F -->|POST /predict| G[FastAPI\npredict_api.py\nport 8000]
+    G -->|Fine-tuned Chronos| G
+    G -->|24 predictions| F
+    F -->|24 rows/day| H[(PostgreSQL\npredictions)]
+    D --> I[Express.js API\nport 3001]
+    E --> I
+    H --> I
+    I -->|JSON| J[React Dashboard\nai-elec-conso.fr]
 ```
 
-### 🔄 Data Flow
-```
-RTE France API
-      │
-      ▼
-fetch_rte_data.py (2 a.m.)          ──► PostgreSQL (historical_data)
-fetch_rte_forecast.py (8 p.m.)      ──► PostgreSQL (rte_forecasts)
-      │
-      ▼
-our_predictions_day_ahead.py (10 a.m.)
-      │
-      ├── reads historical_data from PostgreSQL (504h)
-      ├── reads rte_forecasts from PostgreSQL (24h)
-      ├── POST http://localhost:8000/predict → FastAPI (predict_api.py)
-      │         │
-      │         └── Chronos model loaded in memory
-      └── writes 24 predictions to PostgreSQL (predictions)
-            │
-            ▼
-      Express.js API (port 3001)
-            │
-            ▼
-      React Dashboard (port 5173)
-```
+### 🔄 Automated Pipeline
 
-### 🖥️ Dashboard Preview
-```
-┌─────────────────────────────────────────────────────────┐
-│  ⚡ Electricity Consumption Dashboard          [🌙/☀️]  │
-├─────────────────────────────────────────────────────────┤
-│  France — Actual vs RTE Forecasts vs Our Forecasts      │
-│                                        [Last 3 months ▼]│
-│                                                         │
-│  80k ┤                                                  │
-│      │  ━━━━━━  Actual Consumption                      │
-│  60k ┤  ──────  RTE Forecast                            │
-│      │  ──────  Our Forecast (Chronos)                  │
-│  40k ┤                                                  │
-│      └──────────────────────────────────────────────    │
-│      Dec 01        Jan 01        Feb 01                 │
-│                                                         │
-│  Actual consumption for day D is available on D+1 at 2am│
-│  RTE forecasts for day J are generated at 8pm           │
-│  Our forecasts for J+1 are generated at 10am            │
-│                                                         │
-│  © Actual consumption and RTE forecasts from RTE France │
-└─────────────────────────────────────────────────────────┘
-```
+| Script | Schedule | Description |
+|--------|----------|-------------|
+| `fetch_rte_data.py` | Daily at 2 a.m. | Fetches actual consumption for day J |
+| `start_api.sh` | On boot + 9:50 a.m. | Restarts FastAPI |
+| `our_predictions_day_ahead.py` | Daily at 10 a.m. | Generates our forecasts via FastAPI |
+| `fetch_rte_forecast.py` | Daily at 8 p.m. | Fetches RTE forecasts for day J |
+
+> 📊 **Data note**: Consumption data is retrieved via the `Consumption` endpoint of the RTE France API. Raw data is provided at a **15-minute granularity** (96 data points per day), then aggregated into **hourly averages** (24 data points per day) before being stored in PostgreSQL.
+
+
+### 🤖 The Chronos Model
+
+[Chronos](https://github.com/amazon-science/chronos-forecasting) is a **pretrained foundation model for time series forecasting**, developed by Amazon Research. Unlike classical models (ARIMA, Prophet) that need to be trained on each specific time series, Chronos takes an approach similar to Large Language Models (LLMs): it is pretrained on **thousands of time series from diverse domains** (finance, energy, weather, healthcare...), giving it remarkable generalization capabilities. Notably, Chronos stands out for its **exceptional zero-shot performance** — meaning it can generate accurate forecasts on time series it has never seen during training, without any prior fine-tuning. This property makes it a particularly versatile model, well-suited for a wide range of use cases.
+
+#### How does Chronos work?
+
+Chronos transforms numerical time series values into **tokens** (just like an LLM tokenizes text), then uses a **Transformer architecture** to learn temporal patterns. To generate forecasts, it predicts the next tokens in a probabilistic manner.
+
+#### Fine-tuning on French electricity data
+
+In this project, the `chronos-t5-small` model was **fine-tuned** on historical French electricity consumption data from RTE, to adapt its predictions to the specificities of the French grid:
+- Daily cycles (morning/evening peaks)
+- Weekly cycles (weekends vs. working days)
+- Annual seasonality (winter vs. summer)
+
+The fine-tuned model is exposed via a **FastAPI** endpoint that receives the last 504 hours of consumption and returns 24 predictions for the next day.
 
 ### 🛠️ Tech Stack
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Frontend | React.js | 19.x |
-| Frontend | Vite | 7.x |
-| Frontend | Recharts | 2.x |
-| Frontend | shadcn/ui + Tailwind CSS | 4.x |
-| Backend API | Express.js | 5.x |
-| Backend API | Node.js + pg | 8.x |
-| ML Model | Chronos (Amazon, fine-tuned) | - |
+| Frontend | React.js + Vite | 19.x / 7.x |
+| Frontend | Recharts + shadcn/ui + Tailwind | 2.x / 4.x |
+| Backend API | Express.js + Node.js | 5.x |
+| ML Model | Chronos (Amazon, fine-tuned) | 2.2.2 |
 | Model API | FastAPI + Uvicorn | 0.129.x |
 | Database | PostgreSQL (Docker) | 15 |
+| Deployment | OVH VPS + Nginx + PM2 | - |
+| HTTPS | Let's Encrypt (Certbot) | - |
 | Data Source | RTE France API (OAuth2) | - |
 | Automation | Cron jobs | - |
 
-### ⚙️ Installation & Setup
+### ⚙️ Installation & Setup (local development)
 
 #### Prerequisites
 - Node.js >= 18
@@ -412,18 +299,21 @@ docker run --name trading_pg_db \
   -d postgres:15-alpine
 ```
 
-#### 4. Install Python dependencies
+#### 4. Initialize the database
 ```bash
-pip install -r requirements.txt
+docker exec -i trading_pg_db psql -U dev_user -d trading_data < backend/backup/trading_data_3_tables.sql
 ```
 
-#### 5. Give execution permissions to the FastAPI script
+#### 5. Install Python dependencies
 ```bash
-chmod +x scripts/start_api.sh
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 #### 6. Start the ML model API
 ```bash
+chmod +x scripts/start_api.sh
 bash scripts/start_api.sh
 ```
 
@@ -441,49 +331,22 @@ npm install
 npm run dev
 ```
 
-#### 9. Configure cron jobs
+### 🚀 Deployment (OVH VPS)
+
+The project is deployed on an OVH VPS (6 vCores, 12 GB RAM, Ubuntu 25.04) with:
+
+- **Nginx** as reverse proxy (HTTP → HTTPS)
+- **PM2** to manage Node.js and FastAPI processes
+- **Let's Encrypt** for SSL certificate
+- **Cron jobs** for daily automation
+
 ```bash
-crontab -e
+# Start services with PM2
+pm2 start backend/index.js --name "backend"
+pm2 start scripts/start_api.sh --name "fastapi"
+pm2 save
+pm2 startup
 ```
-Add the following lines:
-```bash
-# Start FastAPI on system boot
-@reboot /bin/bash /path/to/electricity_project/scripts/start_api.sh >> /path/to/electricity_project/logs/fastapi.log 2>&1
-
-# Fetch actual RTE consumption daily at 2 a.m.
-0 2 * * * cd /path/to/electricity_project && /opt/anaconda3/envs/electricity_env/bin/python scripts/fetch_rte_data.py >> /path/to/electricity_project/logs/fetch_rte_data.log 2>&1
-
-# Restart FastAPI at 9:50 a.m. (kill old + start new)
-50 9 * * * /bin/bash /path/to/electricity_project/scripts/start_api.sh >> /path/to/electricity_project/logs/fastapi.log 2>&1
-
-# Generate our predictions daily at 10 a.m.
-0 10 * * * cd /path/to/electricity_project && /opt/anaconda3/envs/electricity_env/bin/python scripts/our_predictions_day_ahead.py >> /path/to/electricity_project/logs/our_predictions_day_ahead.log 2>&1
-
-# Fetch RTE forecasts for day J daily at 8 p.m.
-0 20 * * * cd /path/to/electricity_project && /opt/anaconda3/envs/electricity_env/bin/python scripts/fetch_rte_forecast.py >> /path/to/electricity_project/logs/fetch_rte_forecast.log 2>&1
-```
-
-> ⚠️ **Important (macOS)** : For cron jobs to work correctly on macOS, you need to grant Full Disk Access to cron:
-> 1. Open **System Preferences** → **Privacy & Security** → **Full Disk Access**
-> 2. Click **+** and add `/usr/sbin/cron`
-
-### 🐍 Python Dependencies
-
-| Package | Version | Usage |
-|---------|---------|-------|
-| torch | 2.2.2 | Deep learning backend |
-| chronos-forecasting | latest | Foundation model |
-| transformers | 4.57.6 | Model architecture |
-| accelerate | 1.12.0 | Training acceleration |
-| fastapi | 0.129.0 | ML model API |
-| uvicorn | 0.40.0 | ASGI server |
-| pandas | 2.3.3 | Data manipulation |
-| numpy | 1.26.4 | Numerical computing |
-| psycopg2-binary | 2.9.11 | PostgreSQL connection |
-| scikit-learn | 1.7.2 | ML utilities |
-| requests | 2.32.5 | RTE API calls |
-| python-dotenv | 1.2.1 | Environment variables |
-| tqdm | 4.67.3 | Progress bars |
 
 ### 📡 API Endpoints
 
@@ -495,15 +358,6 @@ Add the following lines:
 | GET | `/api/data/rte-forecasts` | RTE official forecasts |
 | GET | `/api/status` | System status & counts |
 | GET | `/api/health` | API health check |
-
-### 🤖 Automated Pipeline (Cron Jobs)
-
-| Script | Schedule | Description |
-|--------|----------|-------------|
-| `start_api.sh` | On boot + daily at 9:50 a.m. | Restarts FastAPI |
-| `fetch_rte_data.py` | Daily at 2 a.m. | Fetches actual consumption for day D |
-| `our_predictions_day_ahead.py` | Daily at 10 a.m. | Generates our forecasts via FastAPI |
-| `fetch_rte_forecast.py` | Daily at 8 p.m. | Fetches RTE forecasts for day J |
 
 ### 📄 License
 
