@@ -23,3 +23,5 @@ build/
 # Divers
 .DS_Store
 models/
+video.mov
+frontend/public/video.mov
