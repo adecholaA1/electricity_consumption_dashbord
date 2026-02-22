@@ -25,3 +25,5 @@ build/
 models/
 video.mov
 frontend/public/video.mov
+FETCH_HEAD
+main
