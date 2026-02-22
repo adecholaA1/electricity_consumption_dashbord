@@ -1,6 +1,6 @@
 # ⚡ Electricity Consumption Dashboard
 
-🌐 **[https://ai-elec-conso.fr](https://ai-elec-conso.fr)** | 📄 MIT License | Stack: React • FastAPI • PostgreSQL • Chronos • Docker • Nginx • PM2
+🌐 **[https://ai-elec-conso.fr](https://ai-elec-conso.fr)** | 📄 MIT License | Stack: React • FastAPI • PostgreSQL • Chronos • Docker • Nginx • PM2 • ETL
 
 English version below
 
