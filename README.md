@@ -96,8 +96,8 @@ Le modèle fine-tuné est exposé via une **API FastAPI** qui reçoit les 504 de
 
 #### 1. Cloner le dépôt
 ```bash
-git clone https://github.com/adecholaA1/electricity_consumption_dashbord.git
-cd electricity_consumption_dashbord
+git clone https://github.com/adecholaA1/electricity_consumption_dashboard.git
+cd electricity_consumption_dashboard
 ```
 
 #### 2. Configurer les variables d'environnement
@@ -278,8 +278,8 @@ The fine-tuned model is exposed via a **FastAPI** endpoint that receives the las
 
 #### 1. Clone the repository
 ```bash
-git clone https://github.com/adecholaA1/electricity_consumption_dashbord.git
-cd electricity_consumption_dashbord
+git clone https://github.com/adecholaA1/electricity_consumption_dashboard.git
+cd electricity_consumption_dashboard
 ```
 
 #### 2. Configure environment variables
