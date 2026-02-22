@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: '/home/ubuntu/electricity_consumption_dashboard/.env' });
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -290,7 +290,7 @@ app.listen(port, () => {
 
 
 
-// require('dotenv').config({ path: '../.env' });
+// require('dotenv').config({ path: '/home/ubuntu/electricity_consumption_dashboard/.env' });
 // const express = require('express');
 // const cors = require('cors');
 // const { Pool } = require('pg');

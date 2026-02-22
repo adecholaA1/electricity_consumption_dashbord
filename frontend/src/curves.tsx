@@ -28,7 +28,7 @@ import axios from 'axios'
 import type { AxiosResponse } from "axios"
 import { useEffect } from "react"
 
-const API_URL = "http://localhost:3001"
+const API_URL = "https://ai-elec-conso.fr"
 
 const chartConfig = {
   true_value: {
