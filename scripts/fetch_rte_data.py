@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import pytz
 import logging
+import time
 
 # ─── Configuration du logging ────────────────────────────────────────────────
 logging.basicConfig(
@@ -238,27 +239,36 @@ def main():
     logger.info("═══════════════════════════════════════════════════════════")
     logger.info("  Récupération des données historiques RTE (J-1)")
     logger.info("═══════════════════════════════════════════════════════════")
-    
-    try:
-        # Étape 1 : Authentification
-        token = get_rte_token()
-        
-        # Étape 2 : Récupération des données
-        all_start_dates, all_values = fetch_consumption(token)
-        
-        # Étape 3 : Nettoyage et agrégation
-        df = clean_data(all_start_dates, all_values)
-        
-        # Étape 4 : Insertion en base
-        insert_into_db(df)
-        
-        logger.info("═══════════════════════════════════════════════════════════")
-        logger.info("  ✓ Pipeline terminé avec succès")
-        logger.info("═══════════════════════════════════════════════════════════")
-        
-    except Exception as e:
-        logger.error(f"✗ Erreur critique : {e}", exc_info=True)
-        raise
+
+    MAX_RETRIES = 3
+    RETRY_DELAY = 30 * 60  # 30 minutes en secondes
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            logger.info(f"Tentative {attempt}/{MAX_RETRIES}...")
+
+            token = get_rte_token()
+            all_start_dates, all_values = fetch_consumption(token)
+            df = clean_data(all_start_dates, all_values)
+
+            if df.empty:
+                raise ValueError("Aucune donnée récupérée depuis RTE.")
+
+            insert_into_db(df)
+
+            logger.info("═══════════════════════════════════════════════════════════")
+            logger.info("  ✓ Pipeline terminé avec succès")
+            logger.info("═══════════════════════════════════════════════════════════")
+            return
+
+        except Exception as e:
+            logger.error(f"✗ Erreur tentative {attempt}/{MAX_RETRIES} : {e}", exc_info=True)
+            if attempt < MAX_RETRIES:
+                logger.info(f"⏳ Nouvelle tentative dans 30 minutes...")
+                time.sleep(RETRY_DELAY)
+            else:
+                logger.error("✗ Toutes les tentatives ont échoué.")
+                raise
 
 if __name__ == "__main__":
     main()
